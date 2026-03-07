@@ -2,16 +2,18 @@ import express from 'express';
 import questionsModel from '../schema/questionsSchema.js';
 import responseModel from '../schema/interviewSchema.js';
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import authMiddleware from '../middleware/auth.js';
 
-const genAI = new GoogleGenerativeAI('AIzaSyD-vCvpTr_ybNXqEDTh2pusn0qC5yBAZZc');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const AIRouter = express.Router();
 
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 async function run(textData) {
     // For text-only input, use the gemini-pro model
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `"${textData}"\n\nHere is the extracted data from a resume of a tech guy. I want to know that in which languages he/she proficient from the languages ['HTML', 'JavaScript', 'C++', 'Python']. Just mention the names of the langauages seprated by comma in single line only.`
     console.log(prompt);
@@ -24,11 +26,17 @@ async function run(textData) {
 
 //   run();
 
-AIRouter.post('/getSkills', async (req, res) => {
-    const { text } = req.body;
-    console.log(text);
-    const ret = await run(text);
-    res.json({text: ret});
+AIRouter.post('/getSkills', authMiddleware, async (req, res) => {
+    try {
+        const { text } = req.body;
+        console.log(text);
+        const ret = await run(text);
+        console.log(ret);
+        res.json({text: ret});
+    } catch (e) {
+        console.error('Error in /getSkills:', e.message);
+        res.status(500).json({error: e.message});
+    }
 })
 
 async function evalute(res) {
@@ -42,20 +50,23 @@ async function evalute(res) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    console.log(text); 
     return text;
 }
 
-AIRouter.post('/checkAnswers', async (req, res) => {
-    const { responses } = req.body;
-    console.log(responses);
-    let data = [];
-    for (let i = 0; i < responses.length; i++) {
-        let txt = await evalute(responses[i]);
-        data.push(txt);
+AIRouter.post('/checkAnswers', authMiddleware, async (req, res) => {
+    try {
+        const { responses } = req.body;
+        console.log(responses);
+        let data = [];
+        for (let i = 0; i < responses.length; i++) {
+            let txt = await evalute(responses[i]);
+            data.push(txt);
+        }
+        res.json({data: data});
+    } catch (e) {
+        console.error('Error in /checkAnswers:', e.message);
+        res.status(500).json({error: e.message});
     }
-    // const ret = await evalute(text);
-    res.json({data: data});
 })
 
 

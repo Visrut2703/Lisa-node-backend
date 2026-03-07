@@ -12,7 +12,7 @@ import AIRouter from './route/shortlist.route.js';
 import LoginRouter from './route/login.router.js';
 dotenv.config();
 app.use(cors({
-    origin: 'http://localhost:5173'  // Allow requests from your frontend origin
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173'  // Allow requests from frontend origin
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());

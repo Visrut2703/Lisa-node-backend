@@ -1,4 +1,6 @@
 import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import questionsModel from '../schema/questionsSchema.js';
 import responseModel from  '../schema/interviewSchema.js';
 import userMdel from '../schema/userSchema.js';
@@ -7,31 +9,37 @@ const LoginRouter = express.Router();
 
 LoginRouter.post('/login', async(req, res)=>{
     const {email, password} = req.body;
-    console.log(email, password);
+    console.log(email);
     const data = await userMdel.find({email: email});
-    console.log(data);
     if(data.length > 0) {
-        if(data[0].password === password){
-            res.json({status: true});
+        const isMatch = await bcrypt.compare(password, data[0].password);
+        if(isMatch){
+            const token = jwt.sign(
+                { id: data[0]._id, email: data[0].email }, 
+                process.env.JWT_SECRET || 'fallback_secret_for_dev', 
+                { expiresIn: '24h' }
+            );
+            res.json({status: true, token, email: data[0].email, name: data[0].email.split('@')[0]});
         }
         else {
-            res.json({status: false});
+            res.status(401).json({status: false, message: 'Invalid credentials'});
         }
     }
     else {
-        res.json({status: false});
+        res.status(404).json({status: false, message: 'User not found'});
     }
 });
 
 LoginRouter.post('/signup', async(req, res)=>{
     const {email, password} = req.body;
-    const data = userMdel.find({email: '1@gmail.com'});
+    const data = await userMdel.find({email: email});
     if(data.length > 0) {
-        res.json({status: false, message: 'Email already in use!'});
+        res.status(400).json({status: false, message: 'Email already in use!'});
     }
     else {
-        await userMdel.insertMany([{email, password}]);
-        res.json({status: true, message: 'Logged in succesfully'});
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await userMdel.insertMany([{email, password: hashedPassword}]);
+        res.json({status: true, message: 'Signed up successfully'});
     }
 });
 

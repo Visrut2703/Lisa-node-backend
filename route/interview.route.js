@@ -2,6 +2,7 @@
 import express from 'express';
 import questionsModel from '../schema/questionsSchema.js';
 import responseModel from '../schema/interviewSchema.js';
+import authMiddleware from '../middleware/auth.js';
 
 const interviewRouter = express.Router();
 
@@ -20,7 +21,7 @@ const questions = [
     },
     {
         question: "Can you describe your previous projects like what kind of difficulties you have faced in those projects and how did you tackle them what learning did you get from those projects?",
-        videoUrl: "https://console.cloudinary.com/pm/c-c93e06480334c85c57e125a7b3d13a/media-explorer?assetId=6f087c01a175cb08e04ad04c9b1f399e",
+        videoUrl: "https://res.cloudinary.com/dt16kdo0z/video/upload/v1713675359/videos/gcl5kzpeeaoyurpkmgpd.mp4",
         type: 'basic',
         level: 'Basic'
     },
@@ -52,12 +53,12 @@ interviewRouter.get('/uploadQuestions', async (req, res) => {
     res.send('ok');
 });
 
-interviewRouter.get('/getQuestions', async (req, res) => {
+interviewRouter.get('/getQuestions', authMiddleware, async (req, res) => {
     const data = await questionsModel.find({});
     res.json({ data: data });
 });
 
-interviewRouter.post('/uploadResponses', async (req, res) => {
+interviewRouter.post('/uploadResponses', authMiddleware, async (req, res) => {
     const { interviewId, answers } = req.body;
     const data = await responseModel.findOneAndUpdate(
         // Search criteria
@@ -76,15 +77,16 @@ interviewRouter.post('/uploadResponses', async (req, res) => {
     res.json({ data: data });
 });
 
-interviewRouter.post('/saveIV', async (req, res) => {
+interviewRouter.post('/saveIV', authMiddleware, async (req, res) => {
     const { interviewId, count, skills } = req.body;
     await responseModel.insertMany([{ interviewId, count, skills, answers: [] }]);
     res.send('ok');
 });
 
-interviewRouter.post('/getIV', async (req, res) => {
+interviewRouter.post('/getIV', authMiddleware, async (req, res) => {
     const { interviewId } = req.body;
     const data = await responseModel.find({ interviewId });
+    console.log(data);
     res.json({ data: data });
 });
 export default interviewRouter;
