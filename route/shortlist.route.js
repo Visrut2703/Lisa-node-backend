@@ -39,33 +39,53 @@ AIRouter.post('/getSkills', authMiddleware, async (req, res) => {
     }
 })
 
-async function evalute(res) {
-    // For text-only input, use the gemini-pro model
-    // const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+async function evaluateBatch(responses) {
+    const formattedResponses = responses.map((res, index) => 
+        `Response #${index + 1}:\nQuestion: ${res.question}\nAnswer: ${res.answer}`
+    ).join('\n\n---\n\n');
 
-    const prompt = `"Question: ${res.question}\n\n Answer: ${res.answer}" I am a interviewer and a candidate provided this answer for the given question. I want to evalute the candidate on based of points out of 10 for the answer. So, evalute this answer and tell me how much score you will assign to this answer. 
+    const prompt = `I am an interviewer. Evaluate the candidate's answers based on a score from 0 to 10 for each.
+    
+    ${formattedResponses}
+    
+    Return the scores as a JSON array of numbers only, like this: [score1, score2, ...]. 
+    Do not provide any other text. Length of the array must be ${responses.length}.`;
 
-    Just provide me a single digit number in the range 0 to 10, I just want a number in the response do not provide me any other text in the response. `
-    console.log(prompt);
+    console.log("Batched Prompt:", prompt);
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
-    return text;
+    let text = response.text().trim();
+    
+    // Safety check for markdown code blocks
+    if (text.startsWith('```json')) {
+        text = text.substring(7, text.length - 3);
+    } else if (text.startsWith('```')) {
+        text = text.substring(3, text.length - 3);
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Failed to parse AI response:", text);
+        // Fallback for non-JSON responses (e.g., if AI returns "8, 9, 7")
+        const scores = text.match(/\d+/g);
+        if (scores) return scores.map(Number);
+        throw new Error("AI returned unparseable evaluation result");
+    }
 }
 
 AIRouter.post('/checkAnswers', authMiddleware, async (req, res) => {
     try {
         const { responses } = req.body;
-        console.log(responses);
-        let data = [];
-        for (let i = 0; i < responses.length; i++) {
-            let txt = await evalute(responses[i]);
-            data.push(txt);
+        if (!responses || responses.length === 0) {
+            return res.json({ data: [] });
         }
-        res.json({data: data});
+        console.log("Processing batched answers...");
+        const scores = await evaluateBatch(responses);
+        res.json({ data: scores });
     } catch (e) {
         console.error('Error in /checkAnswers:', e.message);
-        res.status(500).json({error: e.message});
+        res.status(500).json({ error: e.message });
     }
 })
 
