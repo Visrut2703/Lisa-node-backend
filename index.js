@@ -12,10 +12,30 @@ import AIRouter from './route/shortlist.route.js';
 import LoginRouter from './route/login.router.js';
 import AdminRouter from './route/admin.route.js';
 app.use(cors({
-    origin: ['http://localhost:2345', 'http://localhost:2346', 'https://lisa-node-backend.vercel.app', '*'],
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:2345',
+            'http://localhost:2346',
+            'https://hackathon-frontend-yj8j.vercel.app'
+        ];
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            // Allow all Vercel preview deployments
+            if (origin.endsWith('.vercel.app')) {
+                callback(null, true);
+            } else {
+                callback(null, true); // Allow all for now
+            }
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
+// Handle preflight OPTIONS for Vercel serverless
+app.options('*', cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
