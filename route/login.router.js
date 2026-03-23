@@ -15,11 +15,17 @@ LoginRouter.post('/login', async(req, res)=>{
         const isMatch = await bcrypt.compare(password, data[0].password);
         if(isMatch){
             const token = jwt.sign(
-                { id: data[0]._id, email: data[0].email }, 
+                { id: data[0]._id, email: data[0].email, role: data[0].role || 'user' }, 
                 process.env.JWT_SECRET || 'fallback_secret_for_dev', 
                 { expiresIn: '24h' }
             );
-            res.json({status: true, token, email: data[0].email, name: data[0].email.split('@')[0]});
+            res.json({
+                status: true, 
+                token, 
+                email: data[0].email, 
+                role: data[0].role || 'user',
+                name: data[0].email.split('@')[0]
+            });
         }
         else {
             res.status(401).json({status: false, message: 'Invalid credentials'});

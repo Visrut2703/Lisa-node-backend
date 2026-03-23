@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -7,12 +8,11 @@ import Replicate from 'replicate';
 import interviewRouter from './route/interview.route.js';
 import cookieParser from 'cookie-parser';
 const app = express();
-import dotenv from 'dotenv';
 import AIRouter from './route/shortlist.route.js';
 import LoginRouter from './route/login.router.js';
-dotenv.config();
+import AdminRouter from './route/admin.route.js';
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: ['http://localhost:2345', 'http://localhost:2346', 'https://lisa-node-backend.vercel.app', '*'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -22,6 +22,7 @@ app.use(cookieParser());
 app.use('/iv', interviewRouter);
 app.use('/ai', AIRouter);
 app.use('/auth', LoginRouter);
+app.use('/admin', AdminRouter);
 
 
 mongoose.set('strictQuery', false);
@@ -60,3 +61,5 @@ app.get('/getVideo', async (req, res) => {
 app.listen(1111, () => {
   console.log('listening on *:1111');
 });
+
+export default app;
