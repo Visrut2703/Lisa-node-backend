@@ -46,7 +46,7 @@ app.use('/admin', AdminRouter);
 
 
 mongoose.set('strictQuery', false);
-mongoose.connect(process.env.MONGO_URL)
+mongoose.connect(process.env.MONGO_URL, { serverSelectionTimeoutMS: 5000 })
   .then(() => {
     console.log("DataBase connection successful")
   })
